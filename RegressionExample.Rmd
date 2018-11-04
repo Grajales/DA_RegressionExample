@@ -1,0 +1,115 @@
+---
+title: "Machine Learning Application Example"
+author: "Liliana"
+date: "November, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Project Description
+This project shows a "xxx" applycation problem. 
+
+## Data Source
+- Age-adjusted Death Rates for Selected Major Causes of Death in the US
+- Data is available  at  
+<https://data.cdc.gov/api/views/bi63-dtpu/rows.csv?accessType=DOWNLOAD>
+
+## Graphs
+- Top 4 States for Alzheimer's Disease
+- Top 4 States for Heart Disease
+
+## To see other graphs, go to my Shiny app at the following link
+<https://lgaccount.shinyapps.io/shiny_dataproducts_lg/>
+
+Alzheimers Disease: States With The Highest Death Counts and Death Rates 
+
+```{r quiz,echo=FALSE, message=FALSE, warning=FALSE}
+library(doBy) #Summaryby
+library(ggplot2)
+library(caret)
+library(spectral)
+library (plyr)
+library(dplyr)
+library(stringr)
+library(gridExtra)
+#
+#inputGiven <<- read.csv('https://data.cdc.gov/api/views/bi63-dtpu/rows.csv?accessType=DOWNLOAD', header=TRUE, sep=",")
+inputSubData<-read.csv('https://data.cdc.gov/api/views/bi63-dtpu/rows.csv?accessType=DOWNLOAD', header=TRUE, sep=",")
+inputSubData <- subset(inputSubData,select=-c(X113.Cause.Name)) #  removing uneeded columns
+
+```
+
+## Exploratory
+
+You can also embed plots, for example:
+
+```{r exploratory, echo=FALSE}
+
+   # TopStatesNumber <- input$StatesNumber
+    #SelectedCause <- input$CauseName
+    TopStatesNumber <- 5
+    SelectedCause <- "Alzheimer's disease"
+    
+    
+    if(!is.null(SelectedCause)){
+      T_Data <- subset(inputSubData, inputSubData$Cause.Name == SelectedCause  & inputSubData$State != "United States")
+    }
+    
+    
+    #SelectedState <- input$State1
+    SelectedState <- "Illinois"
+ 
+    
+    #Selecting top Deaths states only
+    T_Data$Deaths <-as.numeric(T_Data$Deaths)
+    T_Data_Sum<-aggregate(T_Data$Deaths, list(T_Data$State,T_Data$Cause.Name), sum, na.rm=TRUE) # 
+    colnames(T_Data_Sum)<-c("State", "Cause.Name", "Total_Deaths")
+    T_Data_Sum <-T_Data_Sum[order(T_Data_Sum$Total_Deaths, decreasing = TRUE),]
+    T_Data_Sum <-T_Data_Sum[1:TopStatesNumber,]
+    T_Data_Top_D<-subset(T_Data,State==T_Data_Sum$State)
+    T_Data_State <-subset(T_Data,State==SelectedState)
+    T_Data_Top_D<-rbind(T_Data_Top_D,T_Data_State )
+
+    
+    #Selecting Top Death Rate states only
+    T_Data$Age.adjusted.Death.Rate <-as.numeric(T_Data$Age.adjusted.Death.Rate)
+    T_Data_Sum_DR<-aggregate(T_Data$Age.adjusted.Death.Rate, list(T_Data$State,T_Data$Cause.Name), sum, na.rm=TRUE) # 
+    #print(T_Data_Sum_DR)
+    colnames(T_Data_Sum_DR)<-c("State", "Cause.Name", "Total_DR")
+    T_Data_Sum_DR <-T_Data_Sum_DR[order(T_Data_Sum_DR$Total_DR, decreasing = TRUE),]
+    T_Data_Sum_DR <-T_Data_Sum_DR[1:TopStatesNumber,]
+    T_Data_Top_DR<-subset(T_Data,State==T_Data_Sum_DR$State)
+    T_Data_Top_DR<-rbind(T_Data_Top_DR,T_Data_State )
+    
+    #
+    pt1<- ggplot(T_Data_Top_D, aes(x=Year, y=as.numeric(Deaths),color = State, group = State)) + #linetype = Type, 
+    geom_line(size = 1.5) +
+    labs(title = paste("Historical Death Records from:  ",SelectedCause  , ",  Comparing the State of: ", SelectedState, "with Top-",TopStatesNumber, " States"), x="Year", y="Deaths count")+
+      theme_bw() + 
+      theme(#axis.line=element_blank(),panel.background=element_blank(),# panel.border=element_blank(), panel.grid.major=element_blank(),
+            #panel.grid.minor=element_blank(),plot.background=element_blank(),
+            axis.text.x = element_text(size=12, angle = 90, vjust = 1, color = "black", face = "bold"), axis.text.y = element_text(size=12, color = "black", face = "bold"),
+            axis.title = element_text(size = 16, face = "bold"),
+            plot.title = element_text(size = 16, face = "bold"),
+            strip.text = element_text(size = 16, face = "bold")) #+ #scale_x_date() , ,legend.position="none"
+    
+    pt2<- ggplot(T_Data_Top_DR, aes(x=Year, y=as.numeric(Age.adjusted.Death.Rate),color = State, group = State)) + #linetype = Type, 
+      geom_line(size = 1.5) +
+      labs(title = paste("Age-Adjusted Historical Death Rate (deaths per 100,000) from:  ",SelectedCause  , ",  Comparing the State of: ", SelectedState, "with Top-",TopStatesNumber, " States"), x="Year", y="Death Rate")+
+      theme_bw() + 
+      theme(#panel.background=element_blank(), #panel.border=element_blank(), panel.grid.major=element_blank(),axis.line=element_blank(),plot.background=element_blank(),
+            #panel.grid.minor=element_blank(),
+            axis.text.x = element_text(size=12, angle = 90, vjust = 1, color = "black", face = "bold"), axis.text.y = element_text(size=12, color = "black", face = "bold"),
+            axis.title = element_text(size = 16, face = "bold"),
+            plot.title = element_text(size = 16, face = "bold"),
+            strip.text = element_text(size = 16, face = "bold")) #+ #scale_x_date() , ,legend.position="none"
+     
+     grid.arrange(pt1,pt2)
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
